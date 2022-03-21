@@ -39,7 +39,7 @@ async function getAllParticipants(session_id, post_id) {
  * Session id argument is optional on command line, can also be sent by
  * .env file
  * 
- * @returns {object} - Value of session_id (may be empty), value of post_id
+ * @returns {object} - Value of session_id and post_id
  */
 function getArgsFromCommandLine() {
     let session_id = '';
