@@ -7,6 +7,8 @@ const instaTouch = require('instatouch');
 //https://nodejs.org/api/fs.html
 const fs = require('fs');
 
+//https://nodejs.org/docs/latest/api/process.html#processargv
+const args = process.argv;
 
 /**
  * This function is responsible of writing the content of the golden ticket
@@ -14,17 +16,55 @@ const fs = require('fs');
  * 
  * @property {object} content - Content of the golden ticket
  */
-async function getAllParticipants() {
+async function getAllParticipants(session_id, post_id) {
     try {
         const options = {
             count: 1500,
-            session: process.env.INSTAGRAM_SESSION_ID
+            session: session_id
         };
-        const comments = await instaTouch.comments('CZz0MqJFDML', options);
-        return comments.collector;
+        const { collector, auth_error } = await instaTouch.comments(post_id, options);
+
+        if (auth_error) await Promise.reject('Auth error!');
+
+        return collector;
     } catch (error) {
         console.log(error);
     }
+}
+
+/**
+ * This function gets the arguments from the command line
+ * wich are: instagram session id, instagram post id
+ * 
+ * Session id argument is optional on command line, can also be sent by
+ * .env file
+ * 
+ * @returns {object} - Value of session_id and post_id
+ */
+function getArgsFromCommandLine() {
+    let session_id = '';
+    let post_id = '';
+    
+    args.forEach(arg => {
+        if (!arg.includes('node') && !arg.endsWith('.js')) {
+            const [ argName, argValue ] = arg.split('=');
+
+            if (argName.includes('session')) {
+                session_id = `sessionid=${argValue};`;
+                return;
+            }
+
+            if (argName.includes('post')) {
+                post_id = argValue;
+                return;
+            }
+        }
+    });
+
+    return {
+        session_id: session_id || process.env.INSTAGRAM_SESSION_ID,
+        post_id
+    };
 }
 
 /**
@@ -56,7 +96,8 @@ function writeGoldenTicket(winner) {
  * Main execution function
  */
 async function main() {
-    const participants = await getAllParticipants();
+    const { session_id, post_id } = getArgsFromCommandLine();
+    const participants = await getAllParticipants(session_id, post_id);
     const goldenTicket = pickWinner(participants);
     writeGoldenTicket(goldenTicket);
 }
